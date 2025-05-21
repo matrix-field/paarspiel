@@ -9,10 +9,6 @@ Ein interaktives Spiel für Paare, das Kommunikation, Nähe und gemeinsame Aktiv
 - Speicherung der Spielernamen
 - Responsive Design für Desktop und Mobile
 
-## Spielen
-
-Besuche [https://fabianengeln.github.io/paarspiel/](https://fabianengeln.github.io/paarspiel/) um das Spiel zu starten.
-
 ## Technologien
 
 - HTML5
