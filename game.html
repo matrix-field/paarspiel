@@ -446,14 +446,20 @@
 
         // Initialize game
         function initializeGame() {
+            // Load player names from localStorage
+            player1 = localStorage.getItem('player1') || 'Spieler 1';
+            player2 = localStorage.getItem('player2') || 'Spieler 2';
+
             // Load saved state from localStorage
             const savedState = localStorage.getItem('gameState');
             if (savedState) {
                 const state = JSON.parse(savedState);
                 currentPlayer = state.currentPlayer;
                 answers = state.answers || [];
-                updateTurnIndicator();
             }
+
+            // Update turn indicator with correct player name
+            updateTurnIndicator();
 
             // Initialize categories
             const categories = [...new Set([
