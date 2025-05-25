@@ -475,6 +475,7 @@
 
             // Initialize categories
             const categories = [...new Set([
+                '🔀 Zufällig',
                 ...questions.map(q => q.category),
                 ...miniTasks.map(t => t.category),
                 ...compliments.map(c => c.category)
@@ -488,7 +489,7 @@
             // Add categories
             categories.forEach(category => {
                 const option = document.createElement('option');
-                option.value = category;
+                option.value = category === '🔀 Zufällig' ? 'all' : category;
                 option.textContent = category;
                 select.appendChild(option);
             });
