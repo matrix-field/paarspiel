@@ -60,7 +60,14 @@
             color: #355C7D;
             cursor: pointer;
             outline: none;
-            width: 220px;
+            width: 300px;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23355C7D' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 1em;
         }
         select:hover {
             border-color: #6C5B7B;
@@ -274,15 +281,20 @@
             display: none;  /* Hide the element completely */
         }
         .category-select {
-            visibility: hidden;
-            opacity: 0;
-            transition: opacity 0.3s ease-in-out;
-            display: none;
-        }
-        .category-select.visible {
             visibility: visible;
             opacity: 1;
             display: block;
+            transition: opacity 0.3s ease-in-out;
+        }
+        .category-select:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .category-label {
+            color: #355C7D;
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -301,6 +313,15 @@
             </div>
             <div class="spin-button" onclick="spinWheel()">Drehen</div>
         </div>
+
+        <div class="controls">
+            <div class="category-label">Kategorie:</div>
+            <select id="categorySelect" class="category-select" onchange="updateCategory()">
+                <option value="" disabled selected>Wähle eine Kategorie</option>
+                <option value="all">🔀 Zufällig</option>
+            </select>
+        </div>
+
         <div class="question-box" id="questionBox">
             Du bist an der Reihe - dreh am Rad!
         </div>
@@ -309,16 +330,6 @@
             <button onclick="getNewContent()" class="next-content-btn" id="nextContentBtn" disabled>Nächste Aufgabe</button>
             <button type="button" onclick="switchPlayer()" class="next-player-btn" id="nextPlayerBtn" disabled>Nächster Spieler</button>
             <button onclick="endGame()" class="end-game-btn">Spiel beenden</button>
-        </div>
-
-        <div class="answer-section" id="answerSection">
-            <textarea id="answerInput" placeholder="Deine Antwort hier..." disabled></textarea>
-        </div>
-
-        <div class="controls">
-            <select id="categorySelect" class="category-select" onchange="updateCategory()">
-                <option value="all">Alle Kategorien</option>
-            </select>
         </div>
     </div>
 
@@ -440,6 +451,7 @@
         let currentContentType = null;
         let isSpinning = false;
         let hasSpun = false;
+        let hasSelectedCategory = false;
         let answers = [];
         let player1 = localStorage.getItem('player1') || 'Spieler 1';
         let player2 = localStorage.getItem('player2') || 'Spieler 2';
@@ -469,6 +481,11 @@
             ])];
             
             const select = document.getElementById('categorySelect');
+            // Clear existing options except the default one
+            while (select.options.length > 1) {
+                select.remove(1);
+            }
+            // Add categories
             categories.forEach(category => {
                 const option = document.createElement('option');
                 option.value = category;
@@ -478,7 +495,10 @@
 
             // Reset spin state
             hasSpun = false;
+            hasSelectedCategory = false;
             updateSpinButton();
+            updateCategorySelect();
+            updateQuestionBox();
         }
 
         // Save game state
@@ -539,42 +559,43 @@
             };
         }
 
+        // Update question box
+        function updateQuestionBox() {
+            const questionBox = document.getElementById('questionBox');
+            const currentPlayerName = currentPlayer === 1 ? player1 : player2;
+            
+            if (!hasSpun) {
+                questionBox.textContent = `${currentPlayerName} ist an der Reihe - dreh am Rad!`;
+            } else if (!hasSelectedCategory) {
+                questionBox.textContent = `${currentPlayerName}: Wähle eine Kategorie`;
+            } else {
+                const result = getContent(currentContentType, currentCategory);
+                questionBox.textContent = `${currentPlayerName}: ${result.text}`;
+                currentContentId = result.id;
+                currentContentType = result.type;
+            }
+        }
+
         // Update category
         function updateCategory() {
             currentCategory = document.getElementById('categorySelect').value;
-            getNewContent();
+            hasSelectedCategory = true;
+            updateQuestionBox();
+            updateNextContentButton();
+            updateCategorySelect();
         }
 
         // Get new content
         function getNewContent() {
-            if (!hasSpun) return;
-
+            if (!hasSpun || !hasSelectedCategory) return;
+            
             const result = getContent(currentContentType, currentCategory);
             const questionBox = document.getElementById('questionBox');
             const currentPlayerName = currentPlayer === 1 ? player1 : player2;
             questionBox.textContent = `${currentPlayerName}: ${result.text}`;
-            
             currentContentId = result.id;
             currentContentType = result.type;
             
-            // Show/hide elements based on content type
-            const categorySelect = document.getElementById('categorySelect');
-            const answerSection = document.getElementById('answerSection');
-            const answerInput = document.getElementById('answerInput');
-            
-            // Always show category select for all content types
-            categorySelect.classList.add('visible');
-            
-            // Only show answer section for questions
-            if (result.type === 'question') {
-                answerSection.classList.add('visible');
-                answerInput.disabled = false;
-            } else {
-                answerSection.classList.remove('visible');
-                answerInput.disabled = true;
-                answerInput.value = '';
-            }
-
             updateNextContentButton();
         }
 
@@ -587,19 +608,6 @@
             
             nextPlayerBtn.disabled = true;
             
-            // Save current answer if it's a question
-            if (currentContentId && currentContentType === 'question') {
-                const answerText = document.getElementById('answerInput').value.trim();
-                if (answerText) {
-                    answers.push({
-                        player: currentPlayer,
-                        questionId: currentContentId,
-                        answer: answerText
-                    });
-                    saveGameState();
-                }
-            }
-
             // Switch to next player
             currentPlayer = currentPlayer === 1 ? 2 : 1;
             updateTurnIndicator();
@@ -607,19 +615,18 @@
 
             // Reset game state
             resetGameState();
+
+            // Reset category select to default
+            const select = document.getElementById('categorySelect');
+            select.selectedIndex = 0;
         }
 
         // Reset game state
         function resetGameState() {
             hasSpun = false;
+            hasSelectedCategory = false;
             currentContentId = null;
             currentContentType = null;
-            
-            const currentPlayerName = currentPlayer === 1 ? player1 : player2;
-            document.getElementById('questionBox').textContent = `${currentPlayerName} ist an der Reihe - dreh am Rad!`;
-            document.getElementById('answerInput').value = '';
-            document.getElementById('answerSection').classList.remove('visible');
-            document.getElementById('categorySelect').classList.remove('visible');
             
             const wheel = document.getElementById('wheel');
             wheel.style.transition = 'none';
@@ -630,23 +637,12 @@
             
             updateSpinButton();
             updateNextContentButton();
+            updateCategorySelect();
+            updateQuestionBox();
         }
 
         // End game
         function endGame() {
-            // Save final answer if it's a question
-            if (currentContentId && currentContentType === 'question') {
-                const answerText = document.getElementById('answerInput').value.trim();
-                if (answerText) {
-                    answers.push({
-                        player: currentPlayer,
-                        questionId: currentContentId,
-                        answer: answerText
-                    });
-                    saveGameState();
-                }
-            }
-
             // Show summary
             const summary = answers.map(answer => {
                 const question = questions.find(q => q.id === answer.questionId);
@@ -684,6 +680,11 @@
 
         function updateNextContentButton() {
             const button = document.getElementById('nextContentBtn');
+            if (!hasSelectedCategory) {
+                button.disabled = true;
+                return;
+            }
+            
             if (currentContentType === 'question') {
                 button.textContent = 'Nächste Frage';
             } else if (currentContentType === 'mini_task') {
@@ -691,6 +692,7 @@
             } else if (currentContentType === 'compliment') {
                 button.textContent = 'Nächstes Kompliment';
             }
+            button.disabled = false;
         }
 
         function getSelectedSection(degrees) {
@@ -734,14 +736,20 @@
 
                 isSpinning = false;
                 hasSpun = true;
+                hasSelectedCategory = false;
                 updateSpinButton();
+                updateCategorySelect();
+                updateQuestionBox();
 
                 const contentTypes = ['question', 'mini_task', 'compliment'];
                 currentContentType = contentTypes[selectedSection];
                 updateNextContentButton();
-
-                getNewContent();
             }, 3000);
+        }
+
+        function updateCategorySelect() {
+            const select = document.getElementById('categorySelect');
+            select.disabled = !hasSpun || hasSelectedCategory;
         }
     </script>
 </body>
